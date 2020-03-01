@@ -1,2 +1,2 @@
-# REST-and-Go
-RESTful API with programming language Go
+# REST and Go
+Building a RESTful API with Go.
