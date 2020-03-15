@@ -1,105 +1,74 @@
+/*
+REST API
+Gorilla documentation: https://www.gorillatoolkit.org/pkg/mux
+*/
+
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"log"
-	"net/http"
-	"github.com/gorilla/mux"
+    "fmt"
+    "log"
+    "net/http"
+    "github.com/gorilla/mux"
 )
 
-type event struct {
-	ID          string `json:"ID"`
-	Title       string `json:"Title"`
-	Description string `json:"Description"`
+func jsonEncoder(paramOne) {
+
+    json.NewEncoder(w).Encode(paramOne)
+
 }
 
-type allEvents []event
-
-var events = allEvents{
-	{
-		ID:          "1",
-		Title:       "Introduction to Go lang",
-		Description: "Come join us for a chance to learn how golang works and get to eventually try it out",
-	},
+func homePage(w http.ResponseWriter, r *http.Request){
+    fmt.Fprintf(w, "Welcome to the HomePage!")
+    fmt.Println("Endpoint Hit: homePage")
 }
 
-func homeLink(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Welcome home!")
+func get(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusOK)
+    w.Write([]byte(`{"message": "get called"}`))
 }
 
-// Convert data from human readable format into a slice using ioutil
-func createEvent(w http.ResponseWriter, r *http.Request) {
-	var newEvent event
-	reqBody, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		fmt.Fprintf(w, "Kindly enter data with the event title and description only in order to update")
-	}
-	
-	json.Unmarshal(reqBody, &newEvent)
-	events = append(events, newEvent)
-	w.WriteHeader(http.StatusCreated)
-
-	json.NewEncoder(w).Encode(newEvent)
+func post(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusCreated)
+    w.Write([]byte(`{"message": "post called"}`))
 }
 
-// Endpoint of getting one event is /events/{id}, uses GET method
-func getOneEvent(w http.ResponseWriter, r *http.Request) {
-	eventID := mux.Vars(r)["id"]
-
-	for _, singleEvent := range events {
-		if singleEvent.ID == eventID {
-			json.NewEncoder(w).Encode(singleEvent)
-		}
-	}
+func put(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusAccepted)
+    w.Write([]byte(`{"message": "put called"}`))
 }
 
-// Display whole slice
-func getAllEvents(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode(events)
+func delete(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusOK)
+    w.Write([]byte(`{"message": "delete called"}`))
 }
 
-// Updating event, using PATCH method
-func updateEvent(w http.ResponseWriter, r *http.Request) {
-	eventID := mux.Vars(r)["id"]
-	var updatedEvent event
-
-	reqBody, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		fmt.Fprintf(w, "Kindly enter data with the event title and description only in order to update")
-	}
-	json.Unmarshal(reqBody, &updatedEvent)
-
-	for i, singleEvent := range events {
-		if singleEvent.ID == eventID {
-			singleEvent.Title = updatedEvent.Title
-			singleEvent.Description = updatedEvent.Description
-			events = append(events[:i], singleEvent)
-			json.NewEncoder(w).Encode(singleEvent)
-		}
-	}
+func notFound(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusNotFound)
+    w.Write([]byte(`{"message": "not found"}`))
 }
 
-func deleteEvent(w http.ResponseWriter, r *http.Request) {
-	eventID := mux.Vars(r)["id"]
 
-	for i, singleEvent := range events {
-		if singleEvent.ID == eventID {
-			events = append(events[:i], events[i+1:]...)
-			fmt.Fprintf(w, "The event with ID %v has been deleted successfully", eventID)
-		}
-	}
-}
-
-// Full run
+// Sub-router are really useful when we want to support multiple resources. Helps us group the content as well as save us from retyping the same path prefix.
 func main() {
-	router := mux.NewRouter().StrictSlash(true)
-	router.HandleFunc("/", homeLink)
-	router.HandleFunc("/event", createEvent).Methods("POST")
-	router.HandleFunc("/events", getAllEvents).Methods("GET")
-	router.HandleFunc("/events/{id}", getOneEvent).Methods("GET")
-	router.HandleFunc("/events/{id}", updateEvent).Methods("PATCH")
-	router.HandleFunc("/events/{id}", deleteEvent).Methods("DELETE")
-	log.Fatal(http.ListenAndServe(":8080", router))
+    // Creates a new instance of a gorilla/mux router
+    router := mux.NewRouter()
+
+    router.HandleFunc("/", get).Methods(http.MethodGet)
+    
+    // Creating subrouter server so it can server static assets using "/api/v1/..."
+    // api := r.PathPrefix("/api/v1").Subrouter()
+    // api.HandleFunc("", get).Methods(http.MethodGet)
+    // api.HandleFunc("", post).Methods(http.MethodPost)
+    // api.HandleFunc("", put).Methods(http.MethodPut)
+    // api.HandleFunc("", delete).Methods(http.MethodDelete)
+    // api.HandleFunc("/user/{userID}/comment/{commentID}", params).Methods(http.MethodGet)
+
+    // Declaring the port and pass in the router
+    log.Fatal(http.ListenAndServe(":8080", router))
 }
